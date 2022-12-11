@@ -63,8 +63,3 @@ def do_25():
         print(c)
 
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    do_25()
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/

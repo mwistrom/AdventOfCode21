@@ -2,6 +2,8 @@ from collections import defaultdict
 import json
 
 answer = 0
+count = 0
+hit = 0
 
 def do_it():
     lines = []
@@ -19,99 +21,66 @@ def do_it():
         c = 9
         ca = []
         while True:
-            ca.append([temp[c][:-1], 1])
+            ca.append(temp[c][:-1])
             c = c + 1
             if c == len(temp):
                 break
 
         edges[key] = [rate, ca]
 
-    # for key, val in edges.items():
-    #     for node in val[1]:
-    #         print(key+"_"+str(val[0]), ' -> ', node+"_"+str(edges[node][0]))
-    # print(json.dumps(edges, indent=2))
-
-    changed = True
-    while changed:
-        changed = False
-        x = []
-        remove_key = ""
-        remove_dist = 0
-        for key, val in edges.items():
-            if val[0] == 0 and len(val[1]) <= 2:
-                x = edges[key][1]
-
-                remove_key = key
-                changed = True
-                break
-        if changed:
-            print("Remove: ", key, "ends:", x)
-            update0 = x[0]
-            update1 = x[1]
-            remove_dist = x[0][1] + x[1][1]
-            remove_from_adj = None
-            for y in edges[update1[0]][1]:
-                remove_from_adj = y
-                if y[0] == remove_key:
-                    edges[update1[0]][1].append([update0[0], remove_dist ])
-                    break
-            edges[update1[0]][1].remove(remove_from_adj)
-            for y in edges[update0[0]][1]:
-                remove_from_adj = y
-                if y[0] == remove_key:
-                    edges[update0[0]][1].append([update1[0], remove_dist ])
-                    break
-            edges[update0[0]][1].remove(remove_from_adj)
-            edges.pop(remove_key, None)
-    print(len(edges))
     print(edges)
-    for key, val in edges.items():
-        for node in val[1]:
-            print(key+"_"+str(val[0]), ' -> ', node[0]+"_"+
-                  str(edges[node[0]][0]) + '  [label = "' + str(node[1]) + '"];')
-
-    dp(edges, "AA", "AA", 0, 0, 0, set(), {})
-    print(answer)
+    ans = dp(edges, 0, 'AA', 'aa', 'AA', 'aa', 0, 0, set(), {})
+    print( ans)
 
 
-def dp(edges, node, enode, t, time, etime, total_rate, total_flow, open_valves ):
-    global answer
-
-    temp = total_flow + (total_rate * (26 - t))
-    if temp > answer:
-        answer = temp
-        print(answer)
-    if t >= 26:
-        return
+def dp(edges, time, node, parent, enode, eparent, total_rate, total_flow, open_valves, memo):
+    global answer, count, hit
+    count += 1
+    if count % 500000 == 0:
+        print(time, node, enode, total_rate, total_flow, answer, hit / count)
+        count = 1
+        hit = 0
+    if time == 26:
+        return total_flow
+    key = (time, node, enode, total_rate, total_flow)
+    if key in memo:
+        hit += 1
+        return memo[key]
 
     rate, children = edges[node]
-    erate, echildren = edges[enode]
+    ret = 0
 
-
-    if t == time:     # move
-
-        if node not in open_valves:
-            open_valves.add(node)
-            time_next = time + 1
-
-
-
-
-        edp(edges, node, enode, time, total_rate, total_flow , open_valves)
+    if rate > 0 and node not in open_valves:
+        open_valves.add(node)
+        ret = edp(edges, time, node, 'a', enode, eparent, total_rate, total_flow , open_valves, rate, memo)
         open_valves.remove(node)
 
     for child in children:
-        edp(edges, child, enode, time, total_rate, total_flow, open_valves )
+        if child == parent and len(children) > 1:
+            continue
+        ret = max(ret, edp(edges, time, child, node, enode, eparent,
+                           total_rate, total_flow, open_valves , 0, memo))
+    memo[key] = ret
+    answer = max(answer, ret)
 
-def edp(edges, node, enode, time, total_rate, total_flow, open_valves ):
+    return ret
+
+def edp(edges, time, node, parent, enode, eparent, total_rate, total_flow, open_valves, my_rate, memo ):
     global answer
+    erate, echildren = edges[enode]
 
-    if enode not in open_valves:
+    ret = 0
+
+    if erate > 0 and enode not in open_valves:
         open_valves.add(enode)
-        dp(edges, node, enode,
-           time + 1, total_rate + erate , total_flow + total_rate, open_valves)
+        ret = dp(edges, time + 1, node, parent, enode, 'aa',
+                 total_rate + erate + my_rate, total_flow + total_rate, open_valves, memo)
         open_valves.remove(enode)
 
     for echild in echildren:
-        dp(edges, node, echild,  time + 1, total_rate ,
-           total_flow + total_rate, open_valves)
+        if echild == eparent and len(echildren) > 1:
+            continue
+        ret = max(ret, dp(edges, time + 1, node, parent, echild, eparent, total_rate + my_rate,
+                total_flow + total_rate, open_valves, memo))
+    return ret
+

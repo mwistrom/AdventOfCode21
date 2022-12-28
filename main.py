@@ -1,6 +1,8 @@
-import aoc_03 as aoc
+import aoc_19 as aoc
 
 if __name__ == '__main__':
-    aoc.do_03()
+    aoc = aoc.AOC()
+    # aoc.do_it()
+    aoc.do_it()
 
 

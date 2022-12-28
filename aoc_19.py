@@ -13,11 +13,8 @@ class AOC:
     max_n_obsid = 0
     final_ans = 1
     count = 0
-
-    opt = [0 ,0]
-    for i in range(1,50):
-        opt.append(i + opt[i])
-    print(opt)
+    hits = 0
+    final_ans
 
     def do_it(self ):
         with open('aoc_19.txt') as my_file:
@@ -31,64 +28,85 @@ class AOC:
                 self.clay_r_cost = (int(x[12]), 0, 0)
                 self.ob_r_cost = (int(x[18]), int(x[21]), 0)
                 self.ge_r_cost = (int(x[27]), 0, int(x[30]))
+
                 self.max_n_ore = max(self.ore_r_cost[0], self.clay_r_cost[0], self.ob_r_cost[0], self.ge_r_cost[0])
                 self.max_n_clay = self.ob_r_cost[1]
                 self.max_n_obsid = self.ge_r_cost[2]
-                print( "To build: ", self.ore_r_cost, self.clay_r_cost, self.ob_r_cost, self.ge_r_cost)
-                print( "Max Mats required: ", self.max_n_ore, self.max_n_clay, self.max_n_obsid)
-                self.dp(0, 1, 0, 0, 0, 0, 0, 0, 0)
-                print("answer:" ,self.ans)
-                self.final_ans = self.final_ans * self.ans
-        print("final answer:", self.final_ans)
+                print( "Max To build: ", self.ore_r_cost, self.clay_r_cost, self.ob_r_cost, self.ge_r_cost)
+                print( "Mats required for robot: ", self.max_n_ore, self.max_n_clay, self.max_n_obsid)
 
-    def dp(self, time, num_ore_robots, num_clay_robots, num_obsi_robots, num_gem_robots, ore, clay, obsid, gems):
-        # print(time * "  ",time, n_o, n_c, n_ob, n_g, o, c, ob, g, "   ", len(memo))
+                ans = self.dp(0, 1, 0, 0, 0, 0, 0, 0, 0, {})
+                print("answer:" ,ans)
 
+    def dp(self, time, num_ore_robots, num_clay_robots, num_obsi_robots, num_gem_robots, ore, clay, obsid, gems, memo):
+        # print(num_ore_robots, num_clay_robots, num_obsi_robots, num_gem_robots,
+        #      "mats", ore, clay, obsid, gems, time * " ", time, self.ans)
         # print("Max: ", self.max_n_ore, self.max_n_clay, self.max_n_obsid)
-
         self.count += 1
         if self.count % 10000000 == 0:
-            print(num_ore_robots, num_clay_robots, num_obsi_robots, num_gem_robots, ore, clay, obsid, gems, time * "  ", time, self.ans)
+            print(num_ore_robots, num_clay_robots, num_obsi_robots, num_gem_robots,
+                  ore, clay, obsid, gems, time * " ", time, self.count, self.hits, self.hits / self.count,
+                  self.final_ans)
+
+        vector = (time,
+                  num_ore_robots + num_clay_robots * 10 + num_obsi_robots * 100 + num_gem_robots * 1000,
+                  ore + clay * 100 + obsid * 10000 + gems * 1000000)
+        if vector in memo:
+            self.hits += 1
+            return memo[vector]
+
+        ret = 0
 
         if time == 32:
-            if self.count % 1000000 == 0:
-                print(num_ore_robots, num_clay_robots, num_obsi_robots, num_gem_robots, "mats", ore, clay, obsid, gems, time * " ", time, self.ans)
-            if gems>self.ans:
-                print(gems)
-            self.ans = max(gems, self.ans)
-            return
+            return gems
 
-        t = 32 - time
-        if self.ans >= num_gem_robots * t + gems + self.opt[t]:
-            return
-
-        if ore >= self.ge_r_cost[0] and obsid >= self.ge_r_cost[2]:
-            self.dp(time + 1,
-                    num_ore_robots, num_clay_robots, num_obsi_robots, num_gem_robots + 1,
-                    ore + num_ore_robots - self.ge_r_cost[0], clay + num_clay_robots,
-                    obsid + num_obsi_robots - self.ge_r_cost[2], gems + num_gem_robots)
         if ore >= self.ore_r_cost[0] and num_ore_robots < self.max_n_ore:
-            self.dp(time + 1,
+            ret = max(ret, self.dp( time + 1,
                     num_ore_robots + 1, num_clay_robots, num_obsi_robots, num_gem_robots,
                     ore + num_ore_robots - self.ore_r_cost[0], clay + num_clay_robots,
-                    obsid + num_obsi_robots, gems + num_gem_robots)
+                    obsid + num_obsi_robots, gems + num_gem_robots, memo))
+
         if ore >= self.clay_r_cost[0] and num_clay_robots < self.max_n_clay:
-            self.dp(time + 1,
+            ret = max(ret, self.dp( time + 1,
                     num_ore_robots, num_clay_robots + 1, num_obsi_robots, num_gem_robots,
                     ore + num_ore_robots - self.clay_r_cost[0], clay + num_clay_robots,
-                    obsid + num_obsi_robots, gems + num_gem_robots)
+                    obsid + num_obsi_robots, gems + num_gem_robots, memo))
+
         if ore >= self.ob_r_cost[0] and clay >= self.ob_r_cost[1] and num_obsi_robots < self.max_n_obsid:
-            self.dp(time + 1,
+            ret = max(ret, self.dp( time + 1,
                     num_ore_robots, num_clay_robots, num_obsi_robots + 1, num_gem_robots,
                     ore + num_ore_robots - self.ob_r_cost[0], clay + num_clay_robots - self.ob_r_cost[1],
-                    obsid + num_obsi_robots, gems + num_gem_robots)
+                    obsid + num_obsi_robots, gems + num_gem_robots, memo))
 
-        # if (ore < self.ore_r_cost[0] and ore < self.clay_r_cost[0] and
-        #     ore < self.ob_r_cost[0] and clay < self.clay_r_cost[1] and
-        #     ore < self.ge_r_cost[0] and obsid < self.ge_r_cost[2]
-        # ):
-        self.dp(time + 1,
+        if ore >= self.ge_r_cost[0] and obsid >= self.ge_r_cost[2] :
+            ret = max(ret, self.dp( time + 1,
+                    num_ore_robots, num_clay_robots, num_obsi_robots, num_gem_robots + 1,
+                    ore + num_ore_robots - self.ge_r_cost[0], clay + num_clay_robots,
+                    obsid + num_obsi_robots - self.ge_r_cost[2], gems + num_gem_robots, memo))
+
+        ret = max(ret, self.dp(time + 1,
                 num_ore_robots, num_clay_robots, num_obsi_robots, num_gem_robots,
                 ore + num_ore_robots, clay + num_clay_robots,
-                obsid + num_obsi_robots, gems + num_gem_robots)
-        return
+                obsid + num_obsi_robots, gems + num_gem_robots, memo))
+
+        memo[vector] = ret
+        self.final_ans = max(self.final_ans, ret)
+        return ret
+
+
+'''
+4 ore/robot
+1:
+0 1 and 0
+
+2: 
+6 2r and 3o
+
+2 ore/robot
+1:
+
+2:
+4 2r and 3o
+4 1 1 and 2 1
+
+'''

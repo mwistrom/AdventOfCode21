@@ -6,7 +6,7 @@ def do_it():
     map = []
     md = {}
     cmds = []
-    with open('aoc_22.txt') as my_file:
+    with open('aoc_22_test.txt') as my_file:
         done = False
         for line in my_file:
             if done:
